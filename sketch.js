@@ -1,12 +1,17 @@
-let img, imgRatio, canvasRatio, wOffset, hOffset, textInput, textValue, font;
+let img, imgRatio, canvasRatio, wOffset, hOffset, textInput, textValue, font, radio, textX, textY;
 let textPoints = [];
 let agents = [];
 let newImage = true;
-const mouseRadius = 50;
+let changeColorOn = true;
+let mouseRadius = 50;
+
+const minSize = 1; 
+const maxSize = 5;
 const noiseScale = 0.01;
 
+
 function preload() {
-  font = loadFont("rubik.ttf");
+  font = loadFont("imprima.ttf");
 }
 
 function setup() {
@@ -16,8 +21,6 @@ function setup() {
   canvasRatio = (width - wOffset) / (height - hOffset);
 
   colorMode(RGB, 255, 255, 255, 1);
-  //colorMode(HSB, 360, 100, 100, 1)
-  //blendMode(BURN);
 
   // for image input
   img = loadImage("example_image.jpg"); // load example image
@@ -26,8 +29,20 @@ function setup() {
 
   // for text input
   textInput = createInput();
-  textInput.position(400, 60);
+  textInput.position(415, 60);
+  textX = wOffset;
+  textY = height/2;
 
+  // radio button for coloring with randomness/noise
+  radio = createRadio();
+  radio.option('Randomness');
+  radio.option('Noise');
+  radio.selected('Randomness');
+  radio.position(790, 170);
+
+  // mouse radius size slider
+  radiusSlider = createSlider(1, 100, 50, 10);
+  radiusSlider.position(800, 250);
   
 }
 
@@ -36,15 +51,7 @@ function draw() {
 
   textInput.input(updateText); // update text points when text input is changed
 
-  // draw text points
-/*   if (textPoints){ 
-    // draw text
-    for (i = 0; i < textPoints.length; i++){
-      const pnt = textPoints[i];
-      strokeWeight(10);
-      point(pnt.x, pnt.y); 
-    }
-  } */
+  mouseRadius = radiusSlider.value();
   
   // draw uploaded image as points
   if (newImage){
@@ -59,19 +66,27 @@ function draw() {
     // draw agents
     for (i = 0; i < agents.length; i++){
       const agent = agents[i];
-      const mouse = createVector(mouseX, mouseY);
+      const mouse = createVector(mouseX - wOffset, mouseY - hOffset);
       agent.update();
       agent.draw();
-
-      if (textPoints.length !== 0){
-        agent.formText(); 
-        //agent.findColor();
-      }
       
       agent.seek(agent.originalPosition);
       agent.flee(mouse, 0);
-      agent.changeColor(mouse);
+
+      if (changeColorOn){
+        agent.changeColor(mouse);
+      }
       
+    }
+
+    // if there is text input
+    if (textPoints.length !== 0){
+      // change color of image points that are closest to each text point
+      const closestAgents = findClosestAgent();
+      for (let i = 0; i < closestAgents.length; i++){
+        const agent = closestAgents[i];
+        agent.changeColor(agent.currentPosition);
+      }
     }
 
 }
@@ -105,16 +120,31 @@ function imageToAgents(){ // create agent array from image
   }
 }
 
-function updateText(){ // convert input text to points and set up the agents for fleeing from them
-  textValue = this.value();
-  textPoints = font.textToPoints(textValue, wOffset, height/2, 150);
-  for (i = 0; i < agents.length; i++){
-    const agent = agents[i];
-    agent.getClosestPoint(); // for each agent, locate the point in textPoints to flee from
-  }
+function updateText(){ // convert input text to points
+  textValue = textInput.value();
+  textPoints = font.textToPoints(textValue, textX, textY, 170);
 }
 
-
+function findClosestAgent(){ // find the agent (image point) that's the closest to each text point
+    let closestAgents = [];
+    for (let i = 0; i < textPoints.length; i++) {
+      let closestIndex = 0;
+      let closestDist = Infinity;
+      for (let j = 0; j < agents.length; j++){
+        const textPoint = textPoints[i];
+        const agent = agents[j];
+        // distance between current text point and current agent
+        const distance = dist(agent.originalPosition.x, agent.originalPosition.y, textPoint.x, textPoint.y);
+        if (distance < closestDist) {
+          closestIndex = j;
+          closestDist = distance;
+        }
+      }
+      const closestAgent = agents[closestIndex];
+      closestAgents.push(closestAgent);
+    }
+    return closestAgents;
+  }
 
 class Agent{
   constructor(x, y, c){
@@ -123,9 +153,9 @@ class Agent{
     this.color = color(red(c), green(c), blue(c), 0.8);
 
     // point weight and position offset based on noise
-    const noiseValue = noise(this.originalPosition.x * noiseScale, this.originalPosition.y * noiseScale);
-    this.weight = map(noiseValue, 0, 1, 5, 20);
-    this.offset = map(noiseValue, 0, 1, 0, 20);
+    this.noiseValue = noise(this.originalPosition.x * noiseScale, this.originalPosition.y * noiseScale);
+    this.weight = map(this.noiseValue, 0, minSize, maxSize, 20);
+    this.offset = map(this.noiseValue, 0, 1, 0, 20);
 
     this.velocity = createVector(0, 0);
     this.acceleration = createVector(0,0);
@@ -134,7 +164,7 @@ class Agent{
     this.maxSpeedFlee = random(1, 3);
     this.maxForceFlee = random(0.05, 0.5);
 
-    this.closestPoint; // closest point in textPoints array
+    //this.closestPoint; // closest point in textPoints array
 
   }
 
@@ -142,30 +172,32 @@ class Agent{
     this.acceleration.add(force);
   }
 
-  changeColor(mouse){ // randomly change the color of points within the mouse radius
+  changeColor(mouse){ // change the color of points within the mouse radius
     const vec = p5.Vector.sub(this.currentPosition, mouse);
-    if (vec.magSq() <= mouseRadius * mouseRadius){
-      this.color = color(random(255), random(255), random(255), 0.8);
-    }
-  }
+    const dist = vec.magSq();
 
-  getClosestPoint(){ // get the point in the textPoints array that's the closest to this point
-    let closestIndex = 0;
-    let closestDist = Infinity;
-    for (let i = 0; i < textPoints.length; i++) {
-      // distance between current point and all text points
-      const distance = dist(this.originalPosition.x, this.originalPosition.y, textPoints[i].x, textPoints[i].y);
-      if (distance < closestDist) {
-        closestIndex = i;
-        closestDist = distance;
+    if (dist <= mouseRadius * mouseRadius){
+      const c = this.color; 
+      let h = floor(hue(c));
+      let s = floor(saturation(c));
+      let b = floor(brightness(c));
+
+      if (radio.value() === "Noise"){
+        h = floor(map(this.noiseValue, 0, 1, h-8, h+8)); // change hue within a range (noise)
+      } else{
+        h = floor(random(h - 8, h + 8)); // change hue within a range (random)
       }
-    }
-    this.closestPoint = textPoints[closestIndex];
-  }
+      
+      h = (h + 360) % 360 // wrap hue between 0 and 360
 
-  formText(){ // make agents flee from text input
-    const target = createVector(this.closestPoint.x, this.closestPoint.y);
-    this.flee(target, 1);
+      s += floor(map(dist, 0, img.width * img.width, 5, 0)); // increase saturation as a function of distance to mouse
+      s = constrain(s, 0, 80) // constrain saturation between 0 and 80
+
+      b += floor(map(dist, 0, img.width * img.width, 10, 0)); // increase brightness as a function of distance to mouse
+      b = constrain(b, 0, 80) // constrain brightness between 0 and 80
+
+      this.color = color(`hsba(${h}, ${s}%, ${b}%, 0.8)`);
+    }
   }
 
   findColor(){ // find the point with the most different color from this point (not working)
@@ -231,7 +263,6 @@ class Agent{
     }
     
   }
-    
 
   update(){
     this.velocity.add(this.acceleration);
@@ -255,7 +286,10 @@ function keyTyped(){
     imageToAgents();
   }
 
-  
+  if (key === 'c'){ // whether or not to change color with mouse hover
+    changeColorOn = !changeColorOn;
+  }
+
 }
 
 
