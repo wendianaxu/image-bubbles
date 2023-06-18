@@ -23,7 +23,7 @@ function setup() {
   colorMode(RGB, 255, 255, 255, 1);
 
   // for image input
-  img = loadImage("example_image.jpg"); // load example image
+  img = loadImage("example_image.JPG"); // load example image
   const imageInput = createFileInput(handleFile);
   imageInput.position(25, 60);
 
