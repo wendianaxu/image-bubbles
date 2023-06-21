@@ -12,6 +12,7 @@ const noiseScale = 0.01;
 
 function preload() {
   font = loadFont("imprima.ttf");
+  img = loadImage("example_image.JPG"); 
 }
 
 function setup() {
@@ -28,10 +29,10 @@ function setup() {
   imageInput.position(25, 60);
 
   // for text input
-  textInput = createInput();
+/*   textInput = createInput();
   textInput.position(415, 60);
   textX = wOffset;
-  textY = height/2;
+  textY = height/2; */
 
   // radio button for coloring with randomness/noise
   radio = createRadio();
@@ -49,7 +50,7 @@ function setup() {
 function draw() {
   background(color("#f8f6f0"));
 
-  textInput.input(updateText); // update text points when text input is changed
+  //textInput.input(updateText); // update text points when text input is changed
 
   mouseRadius = radiusSlider.value();
   
