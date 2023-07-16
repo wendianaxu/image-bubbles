@@ -16,7 +16,8 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(800, 600);
+  const cnv = createCanvas(800, 600);
+  cnv.center("horizontal");
   wOffset = width/15;
   hOffset = height/15;
   canvasRatio = (width - wOffset) / (height - hOffset);
@@ -26,7 +27,7 @@ function setup() {
   // for image input
   img = loadImage("example_image.JPG"); // load example image
   const imageInput = createFileInput(handleFile);
-  imageInput.position(25, 60);
+  imageInput.position(50, 48);
 
   // for text input
 /*   textInput = createInput();
@@ -35,15 +36,15 @@ function setup() {
   textY = height/2; */
 
   // radio button for coloring with randomness/noise
-  radio = createRadio();
+/*   radio = createRadio();
   radio.option('Randomness');
   radio.option('Noise');
   radio.selected('Randomness');
-  radio.position(790, 170);
+  radio.position(790, 0); */
 
   // mouse radius size slider
   radiusSlider = createSlider(1, 100, 50, 10);
-  radiusSlider.position(800, 250);
+  radiusSlider.position(50, 290);
   
 }
 
@@ -183,11 +184,11 @@ class Agent{
       let s = floor(saturation(c));
       let b = floor(brightness(c));
 
-      if (radio.value() === "Noise"){
-        h = floor(map(this.noiseValue, 0, 1, h-8, h+8)); // change hue within a range (noise)
-      } else{
+      /* if (radio.value() === "Noise"){ */
+      h = floor(map(this.noiseValue, 0, 1, h-7, h+7)); // change hue within a range (noise)
+      /* } else{
         h = floor(random(h - 8, h + 8)); // change hue within a range (random)
-      }
+      } */
       
       h = (h + 360) % 360 // wrap hue between 0 and 360
 
@@ -289,6 +290,8 @@ function keyTyped(){
 
   if (key === 'c'){ // whether or not to change color with mouse hover
     changeColorOn = !changeColorOn;
+    const status = document.querySelector(".c");
+    status.classList.toggle("on");
   }
 
 }
