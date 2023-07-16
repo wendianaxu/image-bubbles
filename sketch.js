@@ -27,7 +27,7 @@ function setup() {
   // for image input
   img = loadImage("example_image.JPG"); // load example image
   const imageInput = createFileInput(handleFile);
-  imageInput.position(50, 48);
+  imageInput.position(50, 68);
 
   // for text input
 /*   textInput = createInput();
@@ -44,7 +44,7 @@ function setup() {
 
   // mouse radius size slider
   radiusSlider = createSlider(1, 100, 50, 10);
-  radiusSlider.position(50, 290);
+  radiusSlider.position(50, 310);
   
 }
 
